@@ -6,11 +6,23 @@ const currentThemeState = atom<string>({
   default: 'light',
   effects: [
     ({ onSet }) => {
-      onSet(async (newTheme) => {
-        await SecureStore.setItemAsync('theme', newTheme)
+      onSet(async (value) => {
+        await SecureStore.setItemAsync('theme', value)
       })
     },
   ],
 })
 
-export { currentThemeState }
+const preferSystemThemeState = atom<boolean>({
+  key: 'preferSystemThemeState',
+  default: true,
+  effects: [
+    ({ onSet }) => {
+      onSet(async (value) => {
+        await SecureStore.setItemAsync('preferSystemTheme', value.toString())
+      })
+    },
+  ],
+})
+
+export { currentThemeState, preferSystemThemeState }

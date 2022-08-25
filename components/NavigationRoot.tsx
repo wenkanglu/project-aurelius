@@ -1,45 +1,61 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { NavigationContainer } from '@react-navigation/native'
-import {
-  BottomNavigation,
-  BottomNavigationTab,
-  Icon,
-} from '@ui-kitten/components'
+import { useTheme } from '@ui-kitten/components'
+import * as SecureStore from 'expo-secure-store'
+import { useEffect } from 'react'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useRecoilState, useRecoilValue } from 'recoil'
 
-import HomeScreen from '../screens/HomeScreen'
-import SettingsScreen from '../screens/SettingsScreen'
-
-const HomeIcon = (props: any) => <Icon {...props} name="home" />
-const SettingsIcon = (props: any) => <Icon {...props} name="settings" />
-
-const { Navigator, Screen } = createBottomTabNavigator()
-
-const BottomTabBar = ({ navigation, state }: any) => (
-  <BottomNavigation
-    selectedIndex={state.index}
-    onSelect={(index) => navigation.navigate(state.routeNames[index])}
-  >
-    <BottomNavigationTab icon={HomeIcon} />
-    <BottomNavigationTab icon={SettingsIcon} />
-  </BottomNavigation>
-)
-
-const TabNavigator = () => (
-  <Navigator
-    tabBar={(props) => <BottomTabBar {...props} />}
-    screenOptions={(_) => ({
-      headerShown: false,
-    })}
-  >
-    <Screen name="Home" component={HomeScreen} />
-    <Screen name="Settings" component={SettingsScreen} />
-  </Navigator>
-)
+import LoginScreen from '../screens/LoginScreen'
+import { currentAddressState, currentPrivateKeyState } from '../states/account'
+import { currentThemeState } from '../states/theme'
+import TabNavigation from './TabNavigation'
 
 export default function NavigationRoot() {
+  const theme = useTheme()
+
+  const currentTheme = useRecoilValue(currentThemeState)
+  const [currentAddress, setCurrentAddress] =
+    useRecoilState(currentAddressState)
+  const [currentPrivateKey, setCurrentPrivateKey] = useRecoilState(
+    currentPrivateKeyState
+  )
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const address = await SecureStore.getItemAsync('address') // TODO: set these as string constants
+      const privateKey = await SecureStore.getItemAsync('privateKey')
+
+      if (address && privateKey) {
+        const sk = new Uint8Array(
+          privateKey.split(',').map((str) => {
+            return Number(str)
+          })
+        )
+        setCurrentAddress(address)
+        setCurrentPrivateKey(sk)
+      }
+    }
+
+    checkLogin()
+  }, [])
+
   return (
-    <NavigationContainer>
-      <TabNavigator />
-    </NavigationContainer>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor:
+          currentTheme === 'dark'
+            ? theme['color-basic-800']
+            : theme['color-basic-100'],
+      }}
+    >
+      <NavigationContainer>
+        {currentAddress === '' && currentPrivateKey.length === 0 ? (
+          <LoginScreen />
+        ) : (
+          <TabNavigation />
+        )}
+      </NavigationContainer>
+    </SafeAreaView>
   )
 }

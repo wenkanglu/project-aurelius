@@ -2,32 +2,40 @@ import * as eva from '@eva-design/eva'
 import { ApplicationProvider } from '@ui-kitten/components'
 import * as SecureStore from 'expo-secure-store'
 import { useEffect } from 'react'
+import { useColorScheme } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useSetRecoilState } from 'recoil'
 
-import { currentThemeState } from '../states/theme'
+import { currentThemeState, preferSystemThemeState } from '../states/theme'
 import NavigationRoot from './NavigationRoot'
 
 export default function ApplicationRoot() {
-  const [theme, setTheme] = useRecoilState(currentThemeState)
+  const [currentTheme, setCurrentTheme] = useRecoilState(currentThemeState)
+  const setPreferSystemTheme = useSetRecoilState(preferSystemThemeState)
+  const colorScheme = useColorScheme()
 
   useEffect(() => {
-    const getTheme = async () => {
-      const result = await SecureStore.getItemAsync('theme')
-      if (result && result === 'dark') {
-        setTheme(result)
+    const setAppTheme = async () => {
+      const preferSystemTheme = await SecureStore.getItemAsync(
+        'preferSystemTheme'
+      ) // TODO: set these as string constants
+      const theme = await SecureStore.getItemAsync('theme')
+
+      if (!preferSystemTheme || preferSystemTheme === 'true') {
+        setCurrentTheme(colorScheme ?? 'light')
       } else {
-        setTheme('light')
+        setPreferSystemTheme(false)
+        setCurrentTheme(theme ? theme : 'light')
       }
     }
 
-    getTheme()
+    setAppTheme()
   }, [])
 
   return (
     <ApplicationProvider
       {...eva}
-      theme={theme === 'light' ? eva.light : eva.dark}
+      theme={currentTheme === 'light' ? eva.light : eva.dark}
     >
       <SafeAreaProvider>
         <NavigationRoot />
